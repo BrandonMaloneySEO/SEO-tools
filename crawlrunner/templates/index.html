@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CrawlRunner Command Center</title>
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,300;0,400;0,600;0,700;0,800;1,400&display=swap" rel="stylesheet">
+    
+    <style>
+        :root { --bg: #f8fafc; --text-main: #0f172a; --text-muted: #64748b; --accent: #9333ea; --glass-border: rgba(255, 255, 255, 1); }
+        body { font-family: 'Montserrat', sans-serif; background-color: var(--bg); color: var(--text-main); margin: 0; display: flex; height: 100vh; overflow: hidden; background-image: radial-gradient(circle at 15% 50%, rgba(147, 51, 234, 0.08), transparent 25%), radial-gradient(circle at 85% 30%, rgba(37, 99, 235, 0.08), transparent 25%); }
+        .glass-panel { background: rgba(255, 255, 255, 0.75); backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px); border: 1px solid var(--glass-border); box-shadow: 0 10px 40px rgba(0, 0, 0, 0.05); }
+        
+        #sidebar { width: 320px; padding: 30px 20px; overflow-y: auto; border-right: none; z-index: 10; }
+        #main-content { flex: 1; padding: 40px; overflow-y: auto; position: relative; z-index: 10; }
+        h1 { font-size: 2.5em; font-weight: 800; margin-bottom: 30px;}
+        h2 { font-size: 1.2em; font-weight: 800; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 20px;}
+        
+        details { margin-left: 15px; margin-top: 8px; }
+        summary { cursor: pointer; padding: 8px 12px; border-radius: 9999px; user-select: none; font-size: 0.85em; font-weight: 700; color: var(--text-muted); transition: all 0.3s ease; }
+        summary:hover { background: rgba(255,255,255,0.9); color: var(--accent); box-shadow: 0 2px 10px rgba(0,0,0,0.02); }
+        .file { margin-left: 30px; font-size: 0.8em; font-weight: 600; color: var(--text-muted); cursor: pointer; padding: 6px 0; transition: color 0.2s;}
+        .file:hover { color: var(--accent); }
+        
+        .tab-container { display: flex; gap: 10px; padding: 10px; border-radius: 12px; margin-bottom: 25px; overflow-x: auto;}
+        .tab-btn { background: transparent; border: none; padding: 10px 20px; font-family: 'Montserrat', sans-serif; font-weight: 700; font-size: 0.85em; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); cursor: pointer; border-radius: 8px; transition: all 0.3s ease; white-space: nowrap;}
+        .tab-btn:hover { background: rgba(15,23,42,0.05); color: var(--text-main); }
+        .tab-btn.active { background: var(--accent); color: white; box-shadow: 0 4px 15px rgba(147, 51, 234, 0.3); }
+
+        .data-table { width: 100%; text-align: left; border-collapse: collapse; font-size: 0.9em; }
+        .data-table th, .data-table td { padding: 12px 0; border-bottom: 1px solid rgba(15, 23, 42, 0.05); }
+        .data-table th { color: var(--text-muted); width: 40%; font-weight: 600; }
+        .data-table td { color: var(--text-main); }
+
+        .badge { padding: 4px 12px; border-radius: 12px; font-size: 0.75em; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; display: inline-block; }
+        .badge-purple { background: rgba(147, 51, 234, 0.1); color: var(--accent); }
+        .badge-blue { background: rgba(37, 99, 235, 0.1); color: #2563eb; }
+
+        .stat-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 24px; margin-bottom: 30px; }
+        .stat-box { padding: 24px; border-radius: 24px; border-top: 6px solid var(--text-main); }
+        .stat-box h3 { font-size: 0.7em; font-weight: 800; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.15em; margin-bottom: 10px; margin-top: 0;}
+        .stat-box p { font-size: 2.5em; margin: 0; font-weight: 800; color: var(--text-main); letter-spacing: -0.02em;}
+        .stat-box.warning { border-top-color: #f59e0b; }
+        .stat-box.danger { border-top-color: #ef4444; }
+        .stat-box.brand { border-top-color: var(--accent); }
+
+        .filter-note { color: var(--text-muted); font-size: 0.8em; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 30px; padding-bottom: 20px; border-bottom: 1px solid rgba(15, 23, 42, 0.1);}
+        .viz-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+        .viz-card { border-radius: 24px; padding: 30px; }
+        .card-header { font-size: 0.8em; font-weight: 800; text-transform: uppercase; letter-spacing: 0.1em; color: var(--text-main); margin-bottom: 20px; border-bottom: 1px solid rgba(15, 23, 42, 0.1); padding-bottom: 15px; }
+
+        .search-container { position: relative; margin-bottom: 40px; }
+        .search-input { width: 100%; padding: 20px 30px; font-size: 1.1em; font-weight: 600; font-family: 'Montserrat', sans-serif; border-radius: 9999px; box-sizing: border-box; outline: none; transition: all 0.3s ease; color: var(--text-main); }
+        .search-input::placeholder { color: #94a3b8; font-weight: 400; }
+        .search-input:focus { box-shadow: 0 0 0 4px rgba(147, 51, 234, 0.1); border-color: var(--accent); }
+        #search-results { position: absolute; top: 75px; left: 20px; right: 20px; border-radius: 20px; z-index: 100; max-height: 350px; overflow-y: auto; }
+        #search-results:empty { display: none; }
+        
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: rgba(15, 23, 42, 0.1); border-radius: 10px; }
+    </style>
+</head>
+<body>
+
+    <div id="sidebar" class="glass-panel">
+        <div style="margin-bottom: 25px; padding-bottom: 20px; border-bottom: 1px solid rgba(15, 23, 42, 0.1);">
+            <label style="font-size: 0.7em; font-weight: 800; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 8px; display: block;">Active Project</label>
+            <select id="domain-selector" class="search-input glass-panel" style="padding: 10px 15px; font-size: 0.9em; cursor: pointer; border-radius: 12px;" onchange="window.location.href='/?domain='+this.value">
+                {% for d in domains %}
+                <option value="{{ d }}" {% if d == domain %}selected{% endif %}>{{ d }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <h2>Site Structure</h2>
+        <div style="cursor: pointer; margin-bottom: 25px; margin-top: 10px; color: var(--accent); font-weight: 800; font-size: 0.85em; text-transform: uppercase; letter-spacing: 0.1em; padding: 10px 15px; background: rgba(147, 51, 234, 0.1); border-radius: 9999px; text-align: center;" 
+             hx-get="/api/overview?domain={{ domain }}&path=" 
+             hx-target="#overview-board">
+             🏠 Entire Domain
+        </div>
+
+        {% macro render_tree(tree_dict, current_path="") %}
+            {% for key, value in tree_dict.items() %}
+                {% if key != '_url' %}
+                    {% set new_path = current_path ~ "/" ~ key if current_path else key %}
+                    {% if value | length == 1 and '_url' in value %}
+                        <div class="file" hx-get="/api/overview?domain={{ domain }}&exact_url={{ value['_url'] }}" hx-target="#overview-board">
+                             📄 {{ key }}
+                        </div>
+                    {% else %}
+                        <details open>
+                            <summary hx-get="/api/overview?domain={{ domain }}&path={{ new_path }}" hx-target="#overview-board">
+                                📁 {{ key }}
+                            </summary>
+                            {% if '_url' in value %}
+                                <div class="file" style="color: #9333ea; font-weight: 700; margin-bottom: 5px;" hx-get="/api/overview?domain={{ domain }}&exact_url={{ value['_url'] }}" hx-target="#overview-board">
+                                     📄 [{{ key }} Index]
+                                </div>
+                            {% endif %}
+                            {{ render_tree(value, new_path) }}
+                        </details>
+                    {% endif %}
+                {% endif %}
+            {% endfor %}
+        {% endmacro %}
+
+        {{ render_tree(tree) }}
+    </div>
+
+    <div id="main-content">
+        <div class="search-container">
+            <input type="text" class="search-input glass-panel" name="query" placeholder="Talk to your crawl... (e.g. 'Pages about technical architecture')" hx-post="/api/search?domain={{ domain }}" hx-trigger="keyup changed delay:500ms" hx-target="#search-results">
+            <div id="search-results" class="glass-panel"></div>
+        </div>
+
+        <h1>Command Center</h1>
+        
+        <div id="overview-board" hx-get="/api/overview?domain={{ domain }}&path=" hx-trigger="load">
+            <!-- Content Injects Here -->
+        </div>
+    </div>
+
+    <script>
+        function activateTab(element) {
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            element.classList.add('active');
+        }
+
+        document.body.addEventListener("renderCharts", function(evt) {
+            const data = evt.detail;
+            
+            const scatterDom = document.getElementById('scatterChart');
+            if (scatterDom) {
+                const scatterChart = echarts.init(scatterDom);
+                scatterChart.setOption({
+                    textStyle: { fontFamily: 'Montserrat' },
+                    tooltip: { 
+                        backgroundColor: 'rgba(255, 255, 255, 0.9)', borderColor: 'rgba(15, 23, 42, 0.1)', textStyle: { color: '#0f172a', fontWeight: 600 },
+                        formatter: function (param) { return `<b>${param.data[2]}</b><br/>Weight: ${param.data[0]} KB<br/>PageRank: ${param.data[1]}`; } 
+                    },
+                    xAxis: { type: 'value', name: 'Payload (KB)', nameLocation: 'middle', nameGap: 30, splitLine: { lineStyle: { color: 'rgba(15, 23, 42, 0.05)' } } },
+                    yAxis: { type: 'value', name: 'Internal PageRank', nameLocation: 'middle', nameGap: 40, splitLine: { lineStyle: { color: 'rgba(15, 23, 42, 0.05)' } } },
+                    series: [{ symbolSize: 14, data: data.scatter, type: 'scatter', itemStyle: { color: '#9333ea', shadowBlur: 10, shadowColor: 'rgba(147, 51, 234, 0.3)' } }]
+                });
+            }
+
+            const pieDom = document.getElementById('pieChart');
+            if (pieDom && data.pie) {
+                const pieChart = echarts.init(pieDom);
+                pieChart.setOption({
+                    textStyle: { fontFamily: 'Montserrat' },
+                    tooltip: { trigger: 'item' },
+                    legend: { top: '5%', left: 'center' },
+                    series: [{
+                        type: 'pie', radius: ['40%', '70%'],
+                        center: ['50%', '60%'],
+                        data: data.pie,
+                        label: { show: false },
+                        itemStyle: { borderRadius: 10, borderColor: '#ffffff', borderWidth: 2 }
+                    }]
+                });
+            }
+
+            const graphDom = document.getElementById('graphChart');
+            if (graphDom) {
+                const graphChart = echarts.init(graphDom);
+                graphChart.setOption({
+                    textStyle: { fontFamily: 'Montserrat' },
+                    tooltip: { backgroundColor: 'rgba(255, 255, 255, 0.9)' },
+                    legend: [{ data: ['URLs', 'Extracted Entities'], textStyle: { fontWeight: 600 } }],
+                    series: [{
+                        type: 'graph', layout: 'force', data: data.nodes, links: data.links,
+                        categories: [ { name: 'URLs', itemStyle: { color: '#0f172a' } }, { name: 'Extracted Entities', itemStyle: { color: '#9333ea' } } ],
+                        roam: true, label: { show: true, position: 'right', formatter: '{b}', fontWeight: 600, fontSize: 10 },
+                        
+                        // THE FIX: Binds semantic similarity scores to physical visual line lengths
+                        force: { repulsion: 250, edgeLength: [20, 100] },
+                        
+                        lineStyle: { width: 1, curveness: 0.1 }
+                    }]
+                });
+            }
+        });
+        
+        document.addEventListener('click', function(event) {
+            const searchResults = document.getElementById('search-results');
+            if (!event.target.closest('.search-container')) { searchResults.innerHTML = ''; }
+        });
+    </script>
+</body>
+</html>

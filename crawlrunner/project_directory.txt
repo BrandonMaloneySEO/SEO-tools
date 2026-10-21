@@ -1,0 +1,21 @@
+crawlrunner/
+├── README.md                      # Complete project overview & architecture docs
+├── LICENSE                        # MIT License
+├── requirements.txt               # Python dependencies
+├── docker-compose.yml             # Postgres (with pgvector) & Redis setup
+├── cli.py                         # Single entrypoint CLI tool
+├── start_crawlrunner.sh           # Full-pipeline orchestrator shell script
+├── app/
+│   ├── app.py                     # Flask web interface & API routes
+│   └── templates/
+│       └── index.html             # Glassmorphism UI dashboard
+└── engine/
+    ├── __init__.py
+    ├── cr_ignite.py               # Redis queue seeding
+    ├── cr_publisher.py            # Playwright async browser scouting
+    ├── cr_oracle.py               # DOM diffing & baseline metadata extraction
+    ├── cr_navigation.py           # Link trap filtering & queue management
+    ├── cr_semantics.py            # Ollama intent, ontology & pgvector embeddings
+    ├── cr_performance.py          # Async local Lighthouse engine
+    ├── cr_graph.py               # NetworkX PageRank & depth analytics
+    └── cr_monitor.py             # Swarm monitor & queue lifecycle controller

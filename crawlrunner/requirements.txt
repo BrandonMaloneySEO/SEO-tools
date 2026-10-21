@@ -1,0 +1,12 @@
+flask==3.0.0
+psycopg2-binary==2.9.9
+networkx==3.2.1
+pandas==2.1.4
+playwright==1.41.0
+redis==5.0.1
+httpx==0.26.0
+beautifulsoup4==4.12.3
+ollama==0.1.6
+extruct==0.16.0
+w3lib==2.1.2
+pgvector==0.2.5
